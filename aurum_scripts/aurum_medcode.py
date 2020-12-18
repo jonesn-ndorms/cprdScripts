@@ -5,13 +5,14 @@ import pymysql as sql
 import pandas as pd
 
 
-READ_PATH = "Z:\\Big_Data\\Codes\\readcode\\"
-WRITE_PATH = "Z:\\Big_Data\\Codes\\snomed_new\\"
+READ_PATH = "Z:\\Big_Data\\Codes\\readcode\\arthritis\\"
+WRITE_PATH = "C:\\users\\jonesn\\documents\\arthritis\\"
 
 WRITE_REPORT = True
 # The sort report functionality doesn't quite work yet. Keep false for now
 SORT_REPORT = False
-REPORT_LOCATION = "Z:\\Big_Data\\Codes\\snomed_new\\"
+REPORT_LOCATION = "C:\\users\\jonesn\\documents\\data_reports\\"
+REPORT_NAME = "arthritis_report.txt"
 
 try:
     cnx = sql.connect(
@@ -29,8 +30,8 @@ try:
     aurum_medcode = aurum_medcode.astype(str)
 
     if WRITE_REPORT:
-        report = open(REPORT_LOCATION + "aurum_medcode_report.txt", 'w', encoding='Latin-1')
-        report.write('Name\tConverted\tNot converted\n')
+        report = open(REPORT_LOCATION + REPORT_NAME, 'w', encoding='Latin-1')
+        report.write('Name\tConverted\tNot converted\tMissing readcodes\tDuplicated readcodes\n')
         report.close()
 
     for folder, dirs, files in os.walk(READ_PATH, topdown=True):
@@ -50,8 +51,10 @@ try:
             if WRITE_REPORT:
                 gold_file_count = df.CleansedReadCode.count()
                 join_count = join.CleansedReadCode.count()
-                report = open(REPORT_LOCATION + "aurum_medcode_report.txt", 'a', encoding='Latin-1')
-                report.write(f"{f}\t{str(join_count)}\t{str(int(gold_file_count - join_count))}\n")
+                missing = ';'.join(list(set(df.CleansedReadCode).difference(join.CleansedReadCode)))
+                dupes = ';'.join(list(join[join.duplicated('CleansedReadCode', keep=False)].CleansedReadCode.unique()))
+                report = open(REPORT_LOCATION + REPORT_NAME, 'a', encoding='Latin-1')
+                report.write(f"{f}\t{str(join_count)}\t{str(int(gold_file_count - join_count))}\t{missing}\t{dupes}\n")
                 report.close()
     if WRITE_PATH and SORT_REPORT:
         report = open(REPORT_LOCATION + "aurum_medcode_report.txt", 'r')
@@ -62,4 +65,4 @@ try:
         report.close()
 
 finally:   
-    cur.close()
+    cnx.close()
